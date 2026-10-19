@@ -1,0 +1,77 @@
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.dirname(fileURLToPath(import.meta.url));
+const professionals = JSON.parse(await readFile(path.join(root, 'profissionais.json'), 'utf8'));
+const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[char]));
+
+await mkdir(path.join(root, 'profissionais'), { recursive: true });
+
+for (const person of professionals) {
+  const name = escapeHtml(person.name);
+  const role = escapeHtml(person.role);
+  const title = `${name} | Rede Âmago — ${escapeHtml(person.discipline)} em Goiânia`;
+  const description = `${person.role} ${person.name} na Rede Âmago, em Goiânia. Conheça abordagem, público atendido e horários divulgados.`;
+  const message = encodeURIComponent(`Olá! Gostaria de informações sobre atendimento com ${person.name}.`);
+  const profile = `<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f7f5ef" />
+    <meta name="description" content="${escapeHtml(description)}" />
+    <title>${title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="../professional-page.css" />
+  </head>
+  <body class="profile-page">
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="../index.html" aria-label="Rede Âmago, início"><img class="brand-logo" src="../assets/logo-rede-amago.webp" alt="Rede Âmago" /></a>
+        <nav class="profile-nav" aria-label="Navegação principal"><a href="../index.html#profissionais">Nossa equipe</a><a class="button button-small button-dark" href="https://wa.me/5562982881000?text=${message}" target="_blank" rel="noopener noreferrer">Falar com a equipe <span aria-hidden="true">↗</span></a></nav>
+      </div>
+    </header>
+    <main id="conteudo">
+      <section class="profile-hero">
+        <div class="container profile-hero-grid">
+          <div class="profile-copy">
+            <a class="profile-back" href="../index.html#profissionais"><span aria-hidden="true">←</span> Voltar à equipe</a>
+            <p class="eyebrow"><span class="eyebrow-dot"></span> ${escapeHtml(person.discipline)} · Rede Âmago</p>
+            <h1>${name}<span class="profile-role">${role}</span></h1>
+            <p class="profile-summary">${escapeHtml(person.summary)}</p>
+            <div class="profile-actions"><a class="button button-dark" href="https://wa.me/5562982881000?text=${message}" target="_blank" rel="noopener noreferrer">Consultar atendimento pelo WhatsApp <span aria-hidden="true">↗</span></a><a class="text-link" href="#sobre">Conheça o perfil <span aria-hidden="true">↓</span></a></div>
+            <p class="profile-contact-note">A equipe pode confirmar disponibilidade, valores e opções presencial ou online.</p>
+          </div>
+          <div class="profile-portrait-wrap"><img class="profile-portrait" src="../assets/${escapeHtml(person.photo)}" alt="${escapeHtml(person.role)} ${name}, profissional da Rede Âmago" /><span class="profile-portrait-caption">${escapeHtml(person.discipline)} · Goiânia</span></div>
+        </div>
+      </section>
+      <section class="profile-details section" id="sobre">
+        <div class="container profile-detail-grid">
+          <div class="profile-about"><p class="eyebrow">Sobre o atendimento</p><h2>Cuidado que respeita <em>seu momento.</em></h2><p>${escapeHtml(person.bio)}</p><div class="profile-tags" aria-label="Temas e áreas de atuação">${person.topics.map((topic) => `<span>${escapeHtml(topic)}</span>`).join('')}</div></div>
+          <aside class="profile-facts" aria-label="Informações do atendimento">
+            <div class="profile-fact"><span class="fact-label">Abordagem / formação</span><strong>${escapeHtml(person.approach)}</strong></div>
+            <div class="profile-fact"><span class="fact-label">Público atendido</span><strong>${escapeHtml(person.audience)}</strong></div>
+            <div class="profile-fact"><span class="fact-label">Unidade divulgada</span><strong>${escapeHtml(person.location)} · Goiânia</strong></div>
+            <div class="profile-fact"><span class="fact-label">Horários divulgados</span><strong>${escapeHtml(person.schedule)}</strong></div>
+            <a class="button button-dark profile-fact-button" href="https://wa.me/5562982881000?text=${message}" target="_blank" rel="noopener noreferrer">Perguntar sobre horários <span aria-hidden="true">↗</span></a>
+          </aside>
+        </div>
+      </section>
+      <section class="profile-next"><div class="container profile-next-inner"><div><p class="eyebrow eyebrow-light">Um primeiro passo já é um começo</p><h2>Quer saber se esse atendimento combina com você?</h2><p>Converse com a equipe da Rede Âmago para tirar dúvidas e confirmar disponibilidade.</p></div><a class="button button-light" href="https://wa.me/5562982881000?text=${message}" target="_blank" rel="noopener noreferrer">Conversar pelo WhatsApp <span aria-hidden="true">↗</span></a></div></section>
+    </main>
+    <footer class="profile-footer"><div class="container"><span>© Rede Âmago · Goiânia, GO</span><a href="../index.html#profissionais">Ver todos os profissionais <span aria-hidden="true">↗</span></a></div></footer>
+  </body>
+</html>
+`;
+
+  await writeFile(path.join(root, 'profissionais', `${person.slug}.html`), profile);
+}
+
+console.log(`Páginas geradas: ${professionals.length}`);
